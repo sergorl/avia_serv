@@ -240,6 +240,20 @@ impl Solution {
 #[derive(Debug)]
 pub struct StoreTick {
 	tickets: HashMap<Str, LinkedList<Rc<Ticket>>>,
+	ready:   bool,
+}
+
+impl Future for StoreTick {
+	type Item  = ();
+	type Error = io::Error;
+
+	fn poll(&mut self) -> Result<Async<()>, io::Error> {
+		if self.ready {
+			Ok(Async::Ready(()))
+		} else {
+			Ok(Async::NotReady)
+		}
+	}
 }
 
 
@@ -271,7 +285,7 @@ impl StoreTick {
 
 		let mut tickets: HashMap<Str, LinkedList<Rc<Ticket>>> = HashMap::with_capacity(size);		
 
-		StoreTick {tickets: tickets}
+		StoreTick {tickets: tickets, ready: false}
 			       
 	}
 
@@ -293,7 +307,8 @@ impl StoreTick {
 			
 		}
 
-		self.tickets = sort(&self.tickets, &cmp_tick);		
+		self.tickets = sort(&self.tickets, &cmp_tick);
+		self.ready = true;		
 
 	}
 	

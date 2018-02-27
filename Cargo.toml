@@ -7,12 +7,8 @@ authors = ["sergorl <serg.neworl@gmail.com>"]
 name = "avia"
 path = "src/lib.rs"
 
-# [[bin]]
-# name = "avia_client"
-# src = "src/client.rs"
 
 [dependencies]
-chrono = "0.3"
 hyper = "0.11.18"
 futures = "0.1.14"
 serde = "1.0.27"
