@@ -8,7 +8,6 @@ extern crate serde_json;
 extern crate serde_derive;
 
 use serde_json::{Value, Error};
-use serde::ser::{Serialize, Serializer, SerializeStruct};
 
 use std::collections::{HashMap, LinkedList, VecDeque};
 use std::fmt;
@@ -31,14 +30,11 @@ use std::ops::FnMut;
 
 type Str = Box<str>;
 
- #[macro_export]
 macro_rules! str2str {
     ($x:expr) => {
         $x.to_string().into_boxed_str()   
     };
 }
-
-// -------------------------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RequestTick {
@@ -66,8 +62,6 @@ impl RequestTick {
 		self.departure_time_end
 	}
 }
-
-// -------------------------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Ticket {
@@ -126,10 +120,10 @@ impl fmt::Display for Ticket {
     }
 }
 
-// -------------------------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BatchTick {
+	//#[serde(borrow)]
 	data: Vec<Ticket>, 
 }
 
@@ -147,57 +141,100 @@ impl BatchTick {
 	}
 }
 
-// -------------------------------------------------------------------------------------------
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug)]
 struct Path {
-	ticket_ids: LinkedList<Str>,
-	price:      f64,
+	path:  LinkedList<Rc<Ticket>>,
+	price: f64,
+}
+
+impl Path {
+	fn new(path: LinkedList<Rc<Ticket>>) -> Path {
+		let price = path.iter()
+		                .fold(0f64, |acc, tick| acc + tick.get_price()); 
+
+		Path{path: path, price: price}
+	}
+
+	fn get_path(&self) -> &LinkedList<Rc<Ticket>> {
+		&self.path;
+	}
+
+	fn get_price(&self) -> f64 {
+		self.price;
+	}
 }
 
 /// Trait to display Path
 impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-
+    	      
        	let mut i = 0;
 
-		for id in &self.ticket_ids {
-			write!(f, "id{}  : {}\n", i, id);	
+		for ticket in &self.path {
+			write!(f, "id{}  : {}\n", i, ticket.get_id());	
 			i += 1;
 		}       
         
-        write!(f, "price: {}\n", self.price);
+        write!(f, "price: {}\n\n", self.price);
     
+
         Ok(())
     }
 }
 
-// This is what #[derive(Serialize)] would generate
-// impl Serialize for Path {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//         where S: Serializer
-//     {
-//         let mut s = serializer.serialize_struct("Path", 2)?;
-//         s.serialize_field("ticket_ids", &self.ticket_ids)?;
-//         s.serialize_field("price",      &self.price)?;
-//         s.end()
-//     }
-// }
+#[derive(Debug)]
+struct Paths {
+	paths: LinkedList<Path>,	
+}
 
-// -------------------------------------------------------------------------------------------
+impl Paths {
+	fn new() -> Paths {
+		Paths{paths: LinkedList::new()}
+	}
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+	fn add(&mut self, path: Path) {
+		self.paths.push_front(path);
+	}
+
+	fn is_empty(&self) -> bool {
+		self.paths.is_empty()
+	}
+
+	fn get_paths(&self) -> &LinkedList<Path> {
+		&self.paths
+	}
+}
+
+
+/// Trait to display Path
+impl fmt::Display for Paths {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+       
+       	let mut i = 0;
+
+		for path in &self.paths {
+			write!(f, "Path ##{}\n{}", i, path);	
+			i += 1;
+		}       
+        
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
 pub struct Solution {
-	paths: LinkedList<Path>,
+	paths: LinkedList<Paths>,
 	from:  Str,
 	to:    Str,
 }
+
 
 /// Trait to display Path
 impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
        
-       	write!(f, "_____________________ All paths from {} to {}: ____________________\n", self.from, self.to);
+       	write!(f, "________________________ All paths from {} to {}: ________________________\n", self.from, self.to);
 
        	if self.paths.is_empty() {
        		write!(f, "Empty :( No find.");	
@@ -206,12 +243,13 @@ impl fmt::Display for Solution {
 	       	let mut i = 0;
 
 			for path in &self.paths {
-				write!(f, "------------------------------- Path #{} -----------------------------\n{}", i, path);	
+				write!(f, "-------------------------- Group of Paths #{} --------------------------\n{}", i, path);	
 				i += 1;
 			}       		
         }
 
-        write!(f, "---------------------------------------------------------------------\n\n");
+        write!(f, "--------------------------------------------------------------------------\n");
+
 
         Ok(())
     }
@@ -220,12 +258,12 @@ impl fmt::Display for Solution {
 impl Solution {
 	fn new(from: Str, to: Str) -> Solution {
 		Solution{paths: LinkedList::new(),
-		         from:  from, 
+		         from:  from,
 		         to:    to}
 	}
 
-	fn add(&mut self, paths: &mut LinkedList<Path>) {
-		self.paths.append(paths);
+	fn add(&mut self, paths: Paths) {
+		self.paths.push_front(paths);
 	}
 
 	fn is_empty(&self) -> bool {
@@ -235,6 +273,31 @@ impl Solution {
 	pub fn info(&self) -> String {
 		format!("Path from {} to {}", self.from, self.to)
 	}
+
+	fn get_paths(&self) -> &LinkedList<Paths> {
+		&self.paths
+	}
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FormatSolution {
+	ticket_ids: LinkedList<Str>,
+	price:      u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FormatSolutions {
+	solutions: LinkedList<FormatSolution>, 
+}
+
+fn make_json_solution(solution: &Solution) -> FormatSolutions {
+
+	for paths in solution.get_paths() {
+		for path in &paths.get_paths() {
+			let ids: LinkedList<Str> = path.get_path() ()		
+		}
+	}
+	// FormatSolutions{solutons: }
 }
 
 #[derive(Debug)]
@@ -285,7 +348,8 @@ impl StoreTick {
 
 		let mut tickets: HashMap<Str, LinkedList<Rc<Ticket>>> = HashMap::with_capacity(size);		
 
-		StoreTick {tickets: tickets, ready: false}			       
+		StoreTick {tickets: tickets, ready: false}
+			       
 	}
 
 	pub fn insert(&mut self, batch: BatchTick) {
@@ -366,12 +430,9 @@ impl StoreTick {
 		let start_tickets = self.search_from(from.clone(), start_dep, finish_dep);
 
 		for ticket in &start_tickets {
-
 			match self.find_paths(ticket.clone(), to.clone()) {
-
-				Some(mut path) => {paths.add(&mut path);}
-
-				None           => {continue;}
+				Some(path) => {paths.add(path);}
+				None       => {continue;}
 			}			
 		}
 
@@ -382,24 +443,20 @@ impl StoreTick {
 		}		 
 	}
 
-	fn find_paths(&self, start_ticket: Rc<Ticket>, finish: Str) -> Option<LinkedList<Path>> {
+	fn find_paths(&self, start_ticket: Rc<Ticket>, finish: Str) -> Option<Paths> {
 
 		fn recover_path(parents: &mut HashMap<Str, Rc<Ticket>>, node: Rc<Ticket>) -> Path  {
 
-			let mut path: LinkedList<Str> = LinkedList::new();
-			path.push_front(node.get_id());
+			let mut path: LinkedList<Rc<Ticket>> = LinkedList::new();
+			path.push_front(node.clone());
 
 			let mut keys_to_delete: LinkedList<Str> = LinkedList::new();
 
-			let mut key   = node.get_id();
-			let mut price = node.get_price();
+			let mut key = node.get_id();
 
 			while let Some(parent) = parents.get(&key) {
-
-				path.push_front(parent.get_id());		
-
-				key    = parent.get_id();
-				price += parent.get_price();
+				path.push_front(parent.clone());										
+				key = parent.get_id();
 
 				keys_to_delete.push_front(key.clone());
 			}
@@ -408,13 +465,13 @@ impl StoreTick {
 				parents.remove(&key);
 			}
 	
-			Path{ticket_ids: path, price: price}
+			Path::new(path)
 		}
 
 		// Find paths with DFS
 		let nodes = &self.tickets;
 
-		let mut paths: LinkedList<Path> = LinkedList::new();
+		let mut paths = Paths::new();
 		
 		let mut stack: LinkedList<Rc<Ticket>> = LinkedList::new();
 		stack.push_front(start_ticket.clone());
@@ -431,7 +488,7 @@ impl StoreTick {
 
 			if next_key == finish {				
 				let path = recover_path(&mut parents, node.clone());				
-				paths.push_back(path);
+				paths.add(path);
 			}
 
 			if let Some(children) = nodes.get(&next_key) {

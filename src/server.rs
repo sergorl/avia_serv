@@ -1,4 +1,6 @@
+#[macro_use]
 extern crate avia;
+
 extern crate hyper;
 extern crate futures;
 
@@ -22,7 +24,6 @@ use hyper::header::ContentLength;
 use hyper::server::{Http, Request, Response, Service};
 use hyper::{Method, StatusCode, Body, Chunk};
 
-use std::ascii::AsciiExt;
 use std::io;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -97,22 +98,22 @@ fn search(data: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respons
 	    if let Ok(need) = serde_json::from_slice::<RequestTick>(b.as_ref()) {
 		    		
 		    let mut store = data.borrow_mut();
-		    let mut solution: Solution;
 		    		
 		    match store.poll().unwrap() {
 		    	Async::Ready(_) => {
-		    		if let Some(get) = store.search(need.get_from(), 
+		    		if let Some(solution) = store.search(need.get_from(), 
 					    			                need.get_to(), 
 					    			                need.get_start_time(), 
 					    			                need.get_finish_time()) {
-		    			solution = get;
+		    			
+		    			Response::new().with_status(StatusCode::Ok)
+		                               .with_body(serde_json::to_vec(&solution).unwrap())
 		    		} else {
-		    			return Response::new().with_status(StatusCode::NotFound);
+		    			Response::new().with_status(StatusCode::NotFound)
 		    		}					    	
 		    	}
-		    	_ => {}
+		    	_ => Response::new().with_status(StatusCode::NotFound)
 		    }		
-		    Response::new().with_status(StatusCode::Ok)						    						    					   					    				  
 	    } else {
 	    	Response::new().with_status(StatusCode::NoContent)
 	    }					 
@@ -124,6 +125,6 @@ fn search(data: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respons
 pub fn run_server() {
 	let addr = "127.0.0.1:3000".parse().unwrap();
     let server = Http::new().bind(&addr, || Ok(Server{data: 
-    										   Rc::new(RefCell::new(StoreTick::new(100)))})).unwrap();
+    										   Rc::new(RefCell::new(StoreTick::new(10000)))})).unwrap();
     server.run().unwrap();
 }
