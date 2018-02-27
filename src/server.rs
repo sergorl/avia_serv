@@ -70,19 +70,25 @@ fn insert(data: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respons
 
 	let send = req.body().concat2().map(move |b| {
 
+		println!("Start to process...");
+
 	    if let Ok(batch) = serde_json::from_slice::<BatchTick>(b.as_ref()) {
+
+	    	println!("Batch is received by server.");
 		    		
 		    let mut store = data.borrow_mut();
 		    		
 		    match store.poll().unwrap() {
 		    	Async::Ready(_) => {
-		    		store.insert(batch.clone());					    	
-				    // println!("Store:\n{}", store);
+		    		store.insert(batch.clone());
+		    		println!("Batch is inserted to store of server.");					    	
+				    println!("Store:\n{}", store);
 		    	}
 		    	_ => {}
 		    }		
 		    Response::new().with_status(StatusCode::Ok)						    						    					   					    				  
 	    } else {
+	    	println!("No received data.");
 	    	Response::new().with_status(StatusCode::NoContent)
 	    }					 
     });
@@ -105,7 +111,7 @@ fn search(data: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respons
 					    			                need.get_to(), 
 					    			                need.get_start_time(), 
 					    			                need.get_finish_time()) {
-		    			
+
 		    			Response::new().with_status(StatusCode::Ok)
 		                               .with_body(serde_json::to_vec(&solution).unwrap())
 		    		} else {
@@ -123,7 +129,7 @@ fn search(data: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respons
 }
 
 pub fn run_server() {
-	let addr = "127.0.0.1:3000".parse().unwrap();
+	let addr = "127.0.0.1:8080".parse().unwrap();
     let server = Http::new().bind(&addr, || Ok(Server{data: 
     										   Rc::new(RefCell::new(StoreTick::new(10000)))})).unwrap();
     server.run().unwrap();

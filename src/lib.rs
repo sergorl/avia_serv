@@ -130,20 +130,20 @@ impl fmt::Display for Ticket {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BatchTick {
-	data: Vec<Ticket>, 
+	tickets: Vec<Ticket>, 
 }
 
 impl BatchTick {
 	pub fn new(batch: Vec<Ticket>) -> BatchTick {
-		BatchTick{data: batch}
+		BatchTick{tickets: batch}
 	}
 
 	fn size(&self) -> usize {
-		self.data.len()
+		self.tickets.len()
 	}
 
 	fn get_data(self) -> Vec<Ticket> {
-		self.data
+		self.tickets
 	}
 }
 
@@ -285,14 +285,16 @@ impl StoreTick {
 
 		let mut tickets: HashMap<Str, LinkedList<Rc<Ticket>>> = HashMap::with_capacity(size);		
 
-		StoreTick {tickets: tickets, ready: false}			       
+		StoreTick {tickets: tickets, ready: true}			       
 	}
 
 	pub fn insert(&mut self, batch: BatchTick) {
 
+		self.ready = false;	
+
 		let mut from: Str;
 
-		for ticket in batch.data {
+		for ticket in batch.tickets {
 						
 			from = ticket.get_from();
 			
