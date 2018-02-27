@@ -7,7 +7,7 @@ extern crate serde_derive;
 extern crate hyper;
 extern crate futures;
 
-use avia::{Ticket, StoreTick, BatchTick, Solution};
+use avia::{Ticket, BatchTick, StoreTick, Solution};
 
 use futures::future::Future;
 use hyper::header::ContentLength;

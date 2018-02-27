@@ -28,23 +28,35 @@ use std::rc::Rc;
 use std::ops::FnMut;
 
 
+type Str = Box<str>;
+
+macro_rules! str2str {
+    ($x:expr) => {
+        $x.to_string().into_boxed_str()   
+    };
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Ticket<'t> {
-	id:              &'t str,
-	departure_code:  &'t str,
-	arrival_code:    &'t str,
+pub struct Ticket {
+	id:              Str,
+	departure_code:  Str,
+	arrival_code:    Str,
 	departure_time:  u64,
 	arrival_time:    u64,
 	price:           f64,
 }
 
-impl<'t> Ticket<'t> {		
-	fn get_from(&self) -> &'t str {
-		self.departure_code
+impl Ticket {
+	fn get_id(&self) -> Str {
+		self.id.clone()
 	}
 
-	fn get_to(&self) -> &'t str {
-		self.arrival_code
+	fn get_from(&self) -> Str {
+		self.departure_code.clone()
+	}
+
+	fn get_to(&self) -> Str{
+		self.arrival_code.clone()
 	}
 
 	fn get_dep_time(&self) -> u64 {
@@ -58,18 +70,15 @@ impl<'t> Ticket<'t> {
 	fn get_price(&self) ->f64 {
 		self.price
 	}
-
-	fn get_id(&self) -> &'t str {
-		self.id
-	}
+	
 }
 
-fn cmp_tick(one: & Rc<Ticket>, other: & Rc<Ticket>) -> Ordering {
+fn cmp_tick(one: &Rc<Ticket>, other: &Rc<Ticket>) -> Ordering {
 		one.get_dep_time().cmp(&other.get_dep_time())
 }
 
 /// Trait to display Ticket
-impl<'t> fmt::Display for Ticket<'t> {
+impl fmt::Display for Ticket {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
        
         write!(f, "id        : {}\ndeparture : {}\narrival   : {}\ndep_time  : {}\narriv_time: {}\nprice:    : {}\n", 
@@ -86,13 +95,13 @@ impl<'t> fmt::Display for Ticket<'t> {
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BatchTick<'t> {
-	#[serde(borrow)]
-	data: Vec<Ticket<'t>>, 
+pub struct BatchTick {
+	//#[serde(borrow)]
+	data: Vec<Ticket>, 
 }
 
-impl<'t> BatchTick<'t> {
-	pub fn new(batch: Vec<Ticket<'t>>) -> BatchTick<'t> {
+impl BatchTick {
+	pub fn new(batch: Vec<Ticket>) -> BatchTick {
 		BatchTick{data: batch}
 	}
 
@@ -100,20 +109,20 @@ impl<'t> BatchTick<'t> {
 		self.data.len()
 	}
 
-	fn get_data(self) -> Vec<Ticket<'t>> {
+	fn get_data(self) -> Vec<Ticket> {
 		self.data
 	}
 }
 
 
 #[derive(Debug)]
-struct Path<'t> {
-	path:  LinkedList<Rc<Ticket<'t>>>,
+struct Path {
+	path:  LinkedList<Rc<Ticket>>,
 	price: f64,
 }
 
-impl<'t> Path<'t> {
-	fn new(path: LinkedList<Rc<Ticket<'t>>>) -> Path<'t> {
+impl Path {
+	fn new(path: LinkedList<Rc<Ticket>>) -> Path {
 		let price = path.iter()
 		                .fold(0f64, |acc, tick| acc + tick.get_price()); 
 
@@ -122,7 +131,7 @@ impl<'t> Path<'t> {
 }
 
 /// Trait to display Path
-impl<'t> fmt::Display for Path<'t> {
+impl fmt::Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     	      
        	let mut i = 0;
@@ -140,16 +149,16 @@ impl<'t> fmt::Display for Path<'t> {
 }
 
 #[derive(Debug)]
-struct Paths<'t> {
-	paths: LinkedList<Path<'t>>,	
+struct Paths {
+	paths: LinkedList<Path>,	
 }
 
-impl<'t> Paths<'t> {
-	fn new() -> Paths<'t> {
+impl Paths {
+	fn new() -> Paths {
 		Paths{paths: LinkedList::new()}
 	}
 
-	fn add(&mut self, path: Path<'t>) {
+	fn add(&mut self, path: Path) {
 		self.paths.push_front(path);
 	}
 
@@ -160,7 +169,7 @@ impl<'t> Paths<'t> {
 
 
 /// Trait to display Path
-impl<'t> fmt::Display for Paths<'t> {
+impl fmt::Display for Paths {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
        
        	let mut i = 0;
@@ -175,15 +184,15 @@ impl<'t> fmt::Display for Paths<'t> {
 }
 
 #[derive(Debug)]
-pub struct Solution<'t> {
-	paths: LinkedList<Paths<'t>>,
-	from: &'t str,
-	to: &'t str,
+pub struct Solution {
+	paths: LinkedList<Paths>,
+	from:  Str,
+	to:    Str,
 }
 
 
 /// Trait to display Path
-impl<'t> fmt::Display for Solution<'t> {
+impl fmt::Display for Solution {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
        
        	write!(f, "________________________ All paths from {} to {}: ________________________\n", self.from, self.to);
@@ -207,14 +216,14 @@ impl<'t> fmt::Display for Solution<'t> {
     }
 }
 
-impl<'t> Solution<'t> {
-	fn new(from: &'t str, to: &'t str) -> Solution<'t> {
+impl Solution {
+	fn new(from: Str, to: Str) -> Solution {
 		Solution{paths: LinkedList::new(),
 		         from:  from,
 		         to:    to}
 	}
 
-	fn add(&mut self, paths: Paths<'t>) {
+	fn add(&mut self, paths: Paths) {
 		self.paths.push_front(paths);
 	}
 
@@ -229,13 +238,13 @@ impl<'t> Solution<'t> {
 
 
 #[derive(Debug)]
-pub struct StoreTick<'s> {
-	tickets: HashMap<&'s str, LinkedList<Rc<Ticket<'s>>>>,
+pub struct StoreTick {
+	tickets: HashMap<Str, LinkedList<Rc<Ticket>>>,
 }
 
 
 /// Trait for display StoreTick
-impl<'s> fmt::Display for StoreTick<'s> {
+impl fmt::Display for StoreTick {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
       
         write!(f, "---------------------- Tickets -----------------------\n");
@@ -256,47 +265,45 @@ impl<'s> fmt::Display for StoreTick<'s> {
 }
 
 
-impl<'s> StoreTick<'s> {
+impl StoreTick {
 
-	pub fn new(size: usize) -> StoreTick<'s> {
+	pub fn new(size: usize) -> StoreTick {
 
-		let mut tickets: HashMap<&'s str, LinkedList<Rc<Ticket<'s>>>> = HashMap::with_capacity(size);		
+		let mut tickets: HashMap<Str, LinkedList<Rc<Ticket>>> = HashMap::with_capacity(size);		
 
 		StoreTick {tickets: tickets}
 			       
 	}
 
-	pub fn insert(&mut self, batch: BatchTick<'s>) {
+	pub fn insert(&mut self, batch: BatchTick) {
 
-		let mut from: &str;
+		let mut from: Str;
 
 		for ticket in batch.data {
 						
 			from = ticket.get_from();
 			
-			if self.tickets.contains_key(from) {
-				if let Some(key) = self.tickets.get_mut(from) {
-					(*key).push_back(Rc::new(ticket));				
-				}
-			} else {
-				self.tickets.insert(from, LinkedList::new());
-				if let Some(key) = self.tickets.get_mut(from) {
-					(*key).push_back(Rc::new(ticket));				
-				}
+			if !self.tickets.contains_key(&from) {
+				self.tickets.insert(from.clone(), LinkedList::new());			
+			} 
+
+			if let Some(key) = self.tickets.get_mut(&from) {
+				(*key).push_front(Rc::new(ticket));				
 			}
+			
 		}
 
 		self.tickets = sort(&self.tickets, &cmp_tick);		
 
 	}
 	
-	pub fn search_from(&self, from: &'s str, start_dep: u64, finish_dep: u64) -> LinkedList<Rc<Ticket<'s>>> {
+	pub fn search_from(&self, from: Str, start_dep: u64, finish_dep: u64) -> LinkedList<Rc<Ticket>> {
 
 		if start_dep >= finish_dep {
 			panic!("Start time should less finish time!");
 		}
 
-		let mut find_tickets: LinkedList<Rc<Ticket<'s>>> = LinkedList::new();
+		let mut find_tickets: LinkedList<Rc<Ticket>> = LinkedList::new();
 
 		let cmp = |ticket: &Rc<Ticket>| {
 
@@ -314,7 +321,7 @@ impl<'s> StoreTick<'s> {
 			}		
 		};
 
-		if let Some(tickets) = self.tickets.get(from) {
+		if let Some(tickets) = self.tickets.get(&from) {
 
 			let mut tickets = to_vec(tickets);
 
@@ -335,14 +342,17 @@ impl<'s> StoreTick<'s> {
 		find_tickets
 	}
 
-	pub fn search(&mut self, from: &'s str, to: &'s str, start_dep: u64, finish_dep: u64) -> Option<Solution<'s>> {
+	pub fn search<'s>(&mut self, from: &'s str, to: &'s str, start_dep: u64, finish_dep: u64) -> Option<Solution> {
 
-		let mut paths = Solution::new(from, to);
+		let from = str2str!(from);
+		let to   = str2str!(to);
 
-		let start_tickets = self.search_from(from, start_dep, finish_dep);
+		let mut paths = Solution::new(from.clone(), to.clone());
+
+		let start_tickets = self.search_from(from.clone(), start_dep, finish_dep);
 
 		for ticket in &start_tickets {
-			match self.find_paths(ticket.clone(), to) {
+			match self.find_paths(ticket.clone(), to.clone()) {
 				Some(path) => {paths.add(path);}
 				None       => {continue;}
 			}			
@@ -355,26 +365,26 @@ impl<'s> StoreTick<'s> {
 		}		 
 	}
 
-	fn find_paths(&self, start_ticket: Rc<Ticket<'s>>, finish: &'s str) -> Option<Paths<'s>> {
+	fn find_paths(&self, start_ticket: Rc<Ticket>, finish: Str) -> Option<Paths> {
 
-		fn recover_path<'s>(parents: &mut HashMap<&'s str, Rc<Ticket<'s>>>, node: Rc<Ticket<'s>>) -> Path<'s>  {
+		fn recover_path(parents: &mut HashMap<Str, Rc<Ticket>>, node: Rc<Ticket>) -> Path  {
 
-			let mut path: LinkedList<Rc<Ticket<'s>>> = LinkedList::new();
+			let mut path: LinkedList<Rc<Ticket>> = LinkedList::new();
 			path.push_front(node.clone());
 
-			let mut keys_to_delete: LinkedList<&'s str> = LinkedList::new();
+			let mut keys_to_delete: LinkedList<Str> = LinkedList::new();
 
 			let mut key = node.get_id();
 
-			while let Some(parent) = parents.get(key) {
+			while let Some(parent) = parents.get(&key) {
 				path.push_front(parent.clone());										
 				key = parent.get_id();
 
-				keys_to_delete.push_front(key);
+				keys_to_delete.push_front(key.clone());
 			}
 
 			for key in keys_to_delete {
-				parents.remove(key);
+				parents.remove(&key);
 			}
 	
 			Path::new(path)
@@ -385,13 +395,13 @@ impl<'s> StoreTick<'s> {
 
 		let mut paths = Paths::new();
 		
-		let mut stack: LinkedList<Rc<Ticket<'s>>> = LinkedList::new();
+		let mut stack: LinkedList<Rc<Ticket>> = LinkedList::new();
 		stack.push_front(start_ticket.clone());
 
-		let mut parents: HashMap<&'s str, Rc<Ticket<'s>>> = HashMap::new();
+		let mut parents: HashMap<Str, Rc<Ticket>> = HashMap::new();
 
-		let mut node: Rc<Ticket<'s>>;
-		let mut next_key: &'s str;
+		let mut node: Rc<Ticket>;
+		let mut next_key: Str;
 
 		while !stack.is_empty() {
 			node = stack.pop_front().unwrap();
@@ -403,7 +413,7 @@ impl<'s> StoreTick<'s> {
 				paths.add(path);
 			}
 
-			if let Some(children) = nodes.get(next_key) {
+			if let Some(children) = nodes.get(&next_key) {
 
 				for child in children {
 
