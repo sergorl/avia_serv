@@ -1,0 +1,20 @@
+[package]
+name = "avia_serv"
+version = "0.1.0"
+authors = ["sergorl <serg.neworl@gmail.com>"]
+
+[lib]
+name = "avia"
+path = "src/lib.rs"
+
+# [[bin]]
+# name = "avia_client"
+# src = "src/client.rs"
+
+[dependencies]
+chrono = "0.3"
+hyper = "0.11.18"
+futures = "0.1.14"
+serde = "1.0.27"
+serde_json = "1.0.9"
+serde_derive = "1.0.27"
