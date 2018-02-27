@@ -37,6 +37,33 @@ macro_rules! str2str {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RequestTick {
+	departure_code:       Str,
+	arrival_code:         Str,
+	departure_time_start: u64,
+	departure_time_end:   u64,
+}
+
+impl RequestTick {
+
+	pub fn get_from(&self) -> Str {
+		self.departure_code.clone()
+	}
+
+	pub fn get_to(&self) -> Str{
+		self.arrival_code.clone()
+	}
+
+	pub fn get_start_time(&self) -> u64 {
+		self.departure_time_start
+	}
+
+	pub fn get_finish_time(&self) -> u64 {
+		self.departure_time_end
+	}
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Ticket {
 	id:              Str,
 	departure_code:  Str,
@@ -357,10 +384,10 @@ impl StoreTick {
 		find_tickets
 	}
 
-	pub fn search<'s>(&mut self, from: &'s str, to: &'s str, start_dep: u64, finish_dep: u64) -> Option<Solution> {
+	pub fn search(&mut self, from: Str, to: Str, start_dep: u64, finish_dep: u64) -> Option<Solution> {
 
-		let from = str2str!(from);
-		let to   = str2str!(to);
+		// let from = str2str!(from);
+		// let to   = str2str!(to);
 
 		let mut paths = Solution::new(from.clone(), to.clone());
 

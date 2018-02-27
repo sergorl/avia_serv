@@ -27,7 +27,7 @@ use std::io;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use avia::{Ticket, BatchTick, StoreTick, Solution};
+use avia::{RequestTick, Ticket, BatchTick, StoreTick, Solution};
 
 struct Server {
 	data: Rc<RefCell<StoreTick>>,
@@ -45,39 +45,80 @@ impl Service for Server {
          match (req.method(), req.path()) {            
 
             (&Method::Post, "/batch_insert") => {
+            	let send = insert(self.data.clone(), req);
+            	send           
+            }           
 
-            	let data = self.data.clone();
-     
-                let send = req.body().concat2().map(move |b| {
-
-				    if let Ok(batch) = serde_json::from_slice::<BatchTick>(b.as_ref()) {
-					    		
-					    let mut store = data.borrow_mut();
-					    		
-					    match store.poll().unwrap() {
-					    	Async::Ready(_) => {
-					    		store.insert(batch.clone());					    	
-							    println!("Store:\n{}", store);
-					    	}
-					    	_ => {}
-					    }		
-					    Response::new().with_status(StatusCode::Ok)						    						    					   					    				  
-				    } else {
-				    	Response::new().with_status(StatusCode::NoContent)
-				    }					 
-                });
-                
-                Box::new(send)
-            },           
+            (&Method::Post, "/search") => {
+            	let send = search(self.data.clone(), req);
+            	send                       
+            }
 
             _ => {
                 Box::new(futures::future::ok(
-                    Response::new().with_status(StatusCode::NotFound)
+                    Response::new().with_status(StatusCode::BadRequest)
                 ))
             }
             
         }
     }
+}
+
+
+fn insert(data: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Response, Error=hyper::Error>> {
+
+	let send = req.body().concat2().map(move |b| {
+
+	    if let Ok(batch) = serde_json::from_slice::<BatchTick>(b.as_ref()) {
+		    		
+		    let mut store = data.borrow_mut();
+		    		
+		    match store.poll().unwrap() {
+		    	Async::Ready(_) => {
+		    		store.insert(batch.clone());					    	
+				    // println!("Store:\n{}", store);
+		    	}
+		    	_ => {}
+		    }		
+		    Response::new().with_status(StatusCode::Ok)						    						    					   					    				  
+	    } else {
+	    	Response::new().with_status(StatusCode::NoContent)
+	    }					 
+    });
+                
+    Box::new(send)
+
+}
+
+fn search(data: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Response, Error=hyper::Error>> {
+
+	let send = req.body().concat2().map(move |b| {
+
+	    if let Ok(need) = serde_json::from_slice::<RequestTick>(b.as_ref()) {
+		    		
+		    let mut store = data.borrow_mut();
+		    let mut solution: Solution;
+		    		
+		    match store.poll().unwrap() {
+		    	Async::Ready(_) => {
+		    		if let Some(get) = store.search(need.get_from(), 
+					    			                need.get_to(), 
+					    			                need.get_start_time(), 
+					    			                need.get_finish_time()) {
+		    			solution = get;
+		    		} else {
+		    			return Response::new().with_status(StatusCode::NotFound);
+		    		}					    	
+		    	}
+		    	_ => {}
+		    }		
+		    Response::new().with_status(StatusCode::Ok)						    						    					   					    				  
+	    } else {
+	    	Response::new().with_status(StatusCode::NoContent)
+	    }					 
+    });
+
+    Box::new(send)
 }
 
 pub fn run_server() {
