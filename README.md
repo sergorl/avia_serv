@@ -1,7 +1,7 @@
 # http-server
 Rust implementation of http-server able 
 - to upload batches of ticket 
-- to store the uploaded batches in sorted order
+- to store the uploaded batches in special internal sorted order
 - to search need ticket in the uploaded batches: 
 search is based on [binary serack algorithm](https://en.wikipedia.org/wiki/Binary_search_algorithm) and [DFS](https://en.wikipedia.org/wiki/Depth-first_search) with many author's improved modification 
 
