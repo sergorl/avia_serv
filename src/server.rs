@@ -30,7 +30,7 @@ use std::rc::Rc;
 use avia::{Ticket, BatchTick, StoreTick, Solution};
 
 struct Server {
-	data: Rc<StoreTick>,
+	data: Rc<RefCell<StoreTick>>,
 }
 
 impl Service for Server {
@@ -52,16 +52,14 @@ impl Service for Server {
 
 				    if let Ok(batch) = serde_json::from_slice::<BatchTick>(b.as_ref()) {
 					    		
-					    match self.data.poll().unwrap() {
+					    let mut store = data.borrow_mut();
+					    		
+					    match store.poll().unwrap() {
 					    	Async::Ready(_) => {
-
-					    		data.insert(batch.clone());
-					    	
-							    println!("Data:\n{}", data.clone());
-
+					    		store.insert(batch.clone());					    	
+							    println!("Store:\n{}", store);
 					    	}
 					    	_ => {}
-
 					    }		
 					    Response::new().with_status(StatusCode::Ok)						    						    					   					    				  
 				    } else {
@@ -85,6 +83,6 @@ impl Service for Server {
 pub fn run_server() {
 	let addr = "127.0.0.1:3000".parse().unwrap();
     let server = Http::new().bind(&addr, || Ok(Server{data: 
-    										   Rc::new(StoreTick::new(100))})).unwrap();
+    										   Rc::new(RefCell::new(StoreTick::new(100)))})).unwrap();
     server.run().unwrap();
 }
