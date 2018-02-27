@@ -1,5 +1,9 @@
 # http-server
-Rust implementation of http-server able to upload batches of ticket and search need ticket in the uploaded batches
+Rust implementation of http-server able 
+- to upload batches of ticket 
+- to store the uploaded batches in sorted order
+- to search need ticket in the uploaded batches: 
+search is based on [binary serack algorithm](https://en.wikipedia.org/wiki/Binary_search_algorithm) and [DFS](https://en.wikipedia.org/wiki/Depth-first_search) with many author's improved modification 
 
 ### Dependencies
 - [hyper](https://crates.io/crates/hyper) is used to HTTP implementation
@@ -8,8 +12,11 @@ Rust implementation of http-server able to upload batches of ticket and search n
 - [serde_json](https://crates.io/crates/serde_json) is used with [serde](https://crates.io/crates/serde)
 - [serde_derive](https://crates.io/crates/hyper) is used with [serde](https://crates.io/crates/serde)
 
+### Advantages
+- Internal algorithms able to find a set of different paths between two nodes (if it exists) regardless of path length (or count of internal nodes) + even with cycles
 
-
+### Disadvantages
+- Now library doesn't support parallel computations
 
 
 
