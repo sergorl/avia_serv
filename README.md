@@ -1,5 +1,5 @@
 # http-server
-Rust implementation of http-server able 
+Rust implementation of http-server is able 
 - to upload batches of ticket 
 - to store the uploaded batches in special internal sorted order
 - to search need ticket in the uploaded batches: 
@@ -13,7 +13,8 @@ search is based on [binary search algorithm](https://en.wikipedia.org/wiki/Binar
 - [serde_derive](https://crates.io/crates/hyper) is used with [serde](https://crates.io/crates/serde)
 
 ### Advantages
-- Internal algorithms able to find a set of different paths between two nodes (if it exists) regardless of path length (or count of internal nodes) + even with cycles
+- Internal algorithms is able to find a set of different paths between two nodes (if it exists) regardless of path length (or count of internal nodes) 
+- and to provide a robust implementation of even cycles in graph
 
 ### Disadvantages
 - Now library doesn't support parallel computations
