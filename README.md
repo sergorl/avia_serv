@@ -1,4 +1,4 @@
-# http-server
+# HTTP-server for storing and searching avia tickets
 Rust implementation of http-server is able 
 - to upload batches of ticket 
 - to store the uploaded batches in special internal sorted order
