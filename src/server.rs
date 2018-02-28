@@ -76,21 +76,28 @@ fn insert(store: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respon
 	    if let Ok(batch) = serde_json::from_slice::<BatchTick>(b.as_ref()) {
 
 	    	println!("Batch is received by server.");
-		    		
-		    (*store.borrow_mut()).insert(batch.clone());
-		    		
-		    // match store.poll().unwrap() {
-		    // 	Async::Ready(_) => {
-		    // 		(*store).insert(batch.clone());
-		    // 		println!("Batch is inserted to store of server.");					    	
-				  //   println!("Store:\n{}", store);
-		    // 	}
-		    // 	_ => {}
-		    // }		
-		    Response::new().with_status(StatusCode::Ok)						    						    					   					    				  
+
+	    	let mut store = store.borrow_mut();		    
+		    				    		
+		    match store.poll().unwrap() {
+
+		    	Async::Ready(_) => {
+
+		    		(*store).insert(batch.clone());
+
+		    		println!("Batch is inserted to store of server.");					    	
+
+		    		Response::new().with_status(StatusCode::Ok)						    						    					   					    				  
+		    	}
+
+		    	_ => {
+		    		Response::new().with_status(StatusCode::BadRequest)						    						    					   					    				  
+		    	}
+		    }	
+
 	    } else {
 	    	println!("No received data.");
-	    	Response::new().with_status(StatusCode::NoContent)
+	    	Response::new().with_status(StatusCode::UnavailableForLegalReasons)
 	    }					 
     });
                 
@@ -104,46 +111,34 @@ fn search(store: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respon
 	    if let Ok(need) = serde_json::from_slice::<RequestTick>(b.as_ref()) {
 		    		
 		    println!("Request to search is received by server.");
-		
-		    let mut store = store.borrow_mut();
 
-		    println!("Store in search {:?}", store);
+		    let mut store = store.borrow_mut();		    
+				    		
+		    match store.poll().unwrap() {
 
-		    if let Some(solution) = (*store).search(need.get_from(), 
-							    			        need.get_to(), 
-							    			        need.get_start_time(), 
-							    			        need.get_finish_time()) {
+		    	Async::Ready(_) => {
 
-    			println!("Path of tickets is found.");
+		    		if let Some(solution) = (*store).search(need.get_from(), 
+									    			        need.get_to(), 
+									    			        need.get_start_time(), 
+									    			        need.get_finish_time()) {
 
-    			Response::new().with_status(StatusCode::Ok)
-                               .with_body(serde_json::to_vec(&solution).unwrap())
-    		} else {
-    			println!("No found.");
-    			Response::new().with_status(StatusCode::NotFound)
-    		}				
-		    		
-		    // match store.poll().unwrap() {
-		    // 	Async::Ready(_) => {
-		    // 		if let Some(solution) = (*store).search(need.get_from(), 
-						// 		    			            need.get_to(), 
-						// 		    			            need.get_start_time(), 
-						// 		    			            need.get_finish_time()) {
+		    			println!("Path of tickets is found.");
 
-		    // 			println!("Path of tockets is done.");
+		    			Response::new().with_status(StatusCode::Ok)
+		                               .with_body(serde_json::to_vec(&solution).unwrap())
+		    		} else {
+		    			println!("No found.");
+		    			Response::new().with_status(StatusCode::NotFound)
+		    		}				    	
+		    	}
 
-		    // 			Response::new().with_status(StatusCode::Ok)
-		    //                            .with_body(serde_json::to_vec(&solution).unwrap())
-		    // 		} else {
-		    // 			println!("No found.");
-		    // 			Response::new().with_status(StatusCode::NotFound)
-		    // 		}					    	
-		    // 	}
-		    // 	_ => {
-		    // 		println!("Server is busy now...");
-		    // 		Response::new().with_status(StatusCode::NotFound)
-		    // 	}
-		    // }		
+		    	_ => {
+		    		println!("Server is busy now...");
+		    		Response::new().with_status(StatusCode::NotFound)
+		    	}
+		    }		
+
 	    } else {
 	    	println!("Request to search is NOT received by server.");
 	    	Response::new().with_status(StatusCode::NoContent)

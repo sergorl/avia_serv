@@ -177,7 +177,11 @@ impl fmt::Display for Path {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Solution {
 	paths: LinkedList<Path>,
+
+	#[serde(skip_deserializing)]
 	from:  Str,
+
+	#[serde(skip_deserializing)]
 	to:    Str,
 }
 
@@ -323,8 +327,6 @@ impl StoreTick {
 				unimplemented!()
 			}		
 		};
-
-		println!("Tickets: {:?}", self.tickets);
 
 		if let Some(tickets) = self.tickets.get(&from) {
 
