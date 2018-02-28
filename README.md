@@ -3,7 +3,7 @@ Rust implementation of http-server is able
 - to upload batches of ticket 
 - to store the uploaded batches in special internal sorted order
 - to search need ticket in the uploaded batches: 
-search is based on [binary search algorithm](https://en.wikipedia.org/wiki/Binary_search_algorithm) and [DFS](https://en.wikipedia.org/wiki/Depth-first_search) with many author's improved modification 
+search is based on [binary search algorithm](https://en.wikipedia.org/wiki/Binary_search_algorithm) and [DFS](https://en.wikipedia.org/wiki/Depth-first_search) with many author's improved modifications 
 
 ### Dependencies
 - [hyper](https://crates.io/crates/hyper) is used to HTTP implementation
