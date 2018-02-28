@@ -4,6 +4,16 @@ fn main() {
 	run_server();
 }
 
+
+//  -------------------------------------------------------------------------------
+// | Code snippet below is for testing. It works, but time ranges of intervals     |
+// | [departure_time, arrival_time] and [departure_time_start, departure_time_end] |
+// | should are inside of interval [0, 24] hours.                                  |
+// |                                                                               |
+// | It's just simplifying for testing.                                            |
+//  -------------------------------------------------------------------------------
+
+
 // fn main() {
 // 	let json1 = b"{ 
 // 			        \"id\": \"51e91cabbc513365f132b449742220d3\",
