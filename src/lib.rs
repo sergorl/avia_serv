@@ -172,18 +172,6 @@ impl fmt::Display for Path {
     }
 }
 
-// This is what #[derive(Serialize)] would generate
-// impl Serialize for Path {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//         where S: Serializer
-//     {
-//         let mut s = serializer.serialize_struct("Path", 2)?;
-//         s.serialize_field("ticket_ids", &self.ticket_ids)?;
-//         s.serialize_field("price",      &self.price)?;
-//         s.end()
-//     }
-// }
-
 // -------------------------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -310,7 +298,6 @@ impl StoreTick {
 
 		self.tickets = sort(&self.tickets, &cmp_tick);
 		self.ready = true;		
-
 	}
 	
 	pub fn search_from(&self, from: Str, start_dep: u64, finish_dep: u64) -> LinkedList<Rc<Ticket>> {
@@ -336,6 +323,8 @@ impl StoreTick {
 				unimplemented!()
 			}		
 		};
+
+		println!("Tickets: {:?}", self.tickets);
 
 		if let Some(tickets) = self.tickets.get(&from) {
 
@@ -443,7 +432,7 @@ impl StoreTick {
 					let arv_time = node.get_arv_time();
 					let dep_time = child.get_dep_time();
 
-					if arv_time + 3 < dep_time && dep_time < arv_time + 8 {
+					if arv_time + 3*60*60 < dep_time && dep_time < arv_time + 8*60*60 {
 						stack.push_front(child.clone());
 						parents.insert(child.get_id(), node.clone());
 					}							
