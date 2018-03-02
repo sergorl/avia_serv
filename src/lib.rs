@@ -351,8 +351,7 @@ impl StoreTick {
 
 	pub fn search(&mut self, from: Str, to: Str, start_dep: u64, finish_dep: u64) -> Option<Solution> {
 
-		// let from = str2str!(from);
-		// let to   = str2str!(to);
+		self.ready = false;	
 
 		let mut paths = Solution::new(from.clone(), to.clone());
 
@@ -367,6 +366,8 @@ impl StoreTick {
 				None           => {continue;}
 			}			
 		}
+
+		self.ready = true;	
 
 		if paths.is_empty() {
 			None
