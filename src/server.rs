@@ -1,4 +1,4 @@
-#[macro_use]
+
 extern crate avia;
 
 extern crate hyper;
@@ -6,31 +6,22 @@ extern crate futures;
 extern crate tokio_core;
 
 extern crate serde;
-#[macro_use]
 extern crate serde_json;
-#[macro_use]
 extern crate serde_derive;
 
-use std::cmp::Ordering;
-use serde_json::{Value, Error};
+use self::futures::future::Future;
+use self::futures::{Async, Stream};
 
-use std::collections::{HashMap, LinkedList};
-use std::fmt;
-
-use futures::future::Future;
-use futures::{Async, Stream};
-use std::sync::{Arc, Mutex};
-
-use hyper::header::ContentLength;
-use hyper::server::{Http, Request, Response, Service};
-use hyper::{Method, StatusCode, Body, Chunk};
+use self::hyper::header::ContentLength;
+use self::hyper::server::{Http, Request, Response, Service};
+use self::hyper::{Method, StatusCode, Body, Chunk};
 
 use std::io;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::cell::RefMut;
 
-use avia::{RequestTick, Ticket, BatchTick, StoreTick, Solution};
+use self::avia::{RequestTick, Ticket, BatchTick, StoreTick, Solution};
+
 
 struct Server {
 	store: Rc<RefCell<StoreTick>>,

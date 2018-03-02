@@ -1,4 +1,8 @@
-include!("server.rs");
+// include!("server.rs");
+
+pub mod server;
+
+use server::run_server;
 
 fn main() {
 	run_server();
