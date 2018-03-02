@@ -150,7 +150,7 @@ impl BatchTick {
 // -------------------------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-struct Path {
+pub struct Path {
 	ticket_ids: LinkedList<Str>,
 	price:      f64,
 }
