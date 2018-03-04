@@ -1,17 +1,15 @@
 
 extern crate avia;
-
+extern crate num_cpus;
 extern crate hyper;
 extern crate futures;
 extern crate tokio_core;
-
 extern crate serde;
 extern crate serde_json;
 extern crate serde_derive;
 
 use self::futures::future::Future;
 use self::futures::{Async, Stream};
-
 use self::hyper::header::ContentLength;
 use self::hyper::server::{Http, Request, Response, Service};
 use self::hyper::{Method, StatusCode, Body, Chunk};
@@ -19,12 +17,15 @@ use self::hyper::{Method, StatusCode, Body, Chunk};
 use std::io;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::collections::LinkedList;
 
 use self::avia::{RequestTick, Ticket, BatchTick, StoreTick, Solution};
 
 
 struct Server {
-	store: Rc<RefCell<StoreTick>>,
+	store: Arc<Mutex<RefCell<StoreTick>>>,
 }
 
 impl Service for Server {
@@ -58,7 +59,7 @@ impl Service for Server {
     }
 }
 
-fn insert(store: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Response, Error=hyper::Error>> {
+fn insert(store: Arc<Mutex<RefCell<StoreTick>>>, req: Request) -> Box<Future<Item=Response, Error=hyper::Error>> {
 
 	let send = req.body().concat2().map(move |b| {
 
@@ -68,7 +69,9 @@ fn insert(store: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respon
 
 	    	println!("Batch is received by server.");
 
-	    	let mut store = store.borrow_mut();		    
+	    	let guard = store.lock().unwrap();
+
+	    	let mut store = guard.borrow_mut();		   
 		    
 		    loop {				    		
 			    match store.poll().unwrap() {
@@ -97,7 +100,7 @@ fn insert(store: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respon
 	Box::new(send)           
 }
 
-fn search(store: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Response, Error=hyper::Error>> {
+fn search(store: Arc<Mutex<RefCell<StoreTick>>>, req: Request) -> Box<Future<Item=Response, Error=hyper::Error>> {
 
 	let send = req.body().concat2().map(move |b| {
 
@@ -105,7 +108,9 @@ fn search(store: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respon
 		    		
 		    println!("Request to search is received by server.");
 
-		    let mut store = store.borrow_mut();		    
+		    let guard = store.lock().unwrap();
+
+		    let mut store = guard.borrow_mut();		    
 			
 			loop {	    		
 			    match store.poll().unwrap() {
@@ -145,10 +150,30 @@ fn search(store: Rc<RefCell<StoreTick>>, req: Request) -> Box<Future<Item=Respon
 
 pub fn run_server() {
 
-	let addr   = "127.0.0.1:8080".parse().unwrap();
-	let store  = Rc::new(RefCell::new(StoreTick::new(10_000usize)));
+	let addr  = "127.0.0.1:8080".parse().unwrap();
+	
+	let store = Arc::new(Mutex::new(RefCell::new(StoreTick::new(10_000usize))));
+	let http  = Arc::new(Http::new());
 
-    let server = Http::new().bind(&addr, move || Ok(Server{store: store.clone()})).unwrap();
+	let num_thread = num_cpus::get();
 
-    server.run().unwrap();
+	let mut threads = LinkedList::new();
+	
+    for _ in 0..num_thread {
+
+    	let http  = http.clone();
+    	let store = store.clone();
+
+        threads.push_back(
+        	thread::spawn(move || {
+	        	if let Ok(server) = http.bind(&addr, move || Ok(Server{store: store.clone()})) {
+	    			server.run();	
+	        	}            	
+        }));
+    }
+
+    for thread in threads {
+    	thread.join();
+    }
+
 }

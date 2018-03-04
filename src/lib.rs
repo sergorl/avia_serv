@@ -9,23 +9,19 @@ extern crate serde_derive;
 
 use serde_json::{Value, Error};
 use serde::ser::{Serialize, Serializer, SerializeStruct};
-
 use std::collections::{HashMap, LinkedList, VecDeque};
 use std::fmt;
-
 use futures::future::Future;
 use futures::{Async, Stream};
-use std::sync::Arc;
-
 use hyper::header::ContentLength;
 use hyper::server::{Http, Request, Response, Service};
 use hyper::{Method, StatusCode, Body, Chunk};
-
 use std::ascii::AsciiExt;
 use std::io;
 use std::cell::Cell;
 use std::cmp::Ordering;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::ops::FnMut;
 
 
@@ -106,7 +102,7 @@ impl Ticket {
 	
 }
 
-fn cmp_tick(one: &Rc<Ticket>, other: &Rc<Ticket>) -> Ordering {
+fn cmp_tick(one: &Arc<Ticket>, other: &Arc<Ticket>) -> Ordering {
 		one.get_dep_time().cmp(&other.get_dep_time())
 }
 
@@ -231,7 +227,7 @@ impl Solution {
 
 #[derive(Debug)]
 pub struct StoreTick {
-	tickets: HashMap<Str, LinkedList<Rc<Ticket>>>,
+	tickets: HashMap<Str, LinkedList<Arc<Ticket>>>,
 	ready:   bool,
 }
 
@@ -275,7 +271,7 @@ impl StoreTick {
 
 	pub fn new(size: usize) -> StoreTick {
 
-		let mut tickets: HashMap<Str, LinkedList<Rc<Ticket>>> = HashMap::with_capacity(size);		
+		let mut tickets: HashMap<Str, LinkedList<Arc<Ticket>>> = HashMap::with_capacity(size);		
 
 		StoreTick {tickets: tickets, ready: true}			       
 	}
@@ -295,7 +291,7 @@ impl StoreTick {
 			} 
 
 			if let Some(key) = self.tickets.get_mut(&from) {
-				(*key).push_front(Rc::new(ticket));				
+				(*key).push_front(Arc::new(ticket));				
 			}
 			
 		}
@@ -304,15 +300,15 @@ impl StoreTick {
 		self.ready = true;		
 	}
 	
-	pub fn search_from(&self, from: Str, start_dep: u64, finish_dep: u64) -> LinkedList<Rc<Ticket>> {
+	pub fn search_from(&self, from: Str, start_dep: u64, finish_dep: u64) -> LinkedList<Arc<Ticket>> {
 
 		if start_dep >= finish_dep {
 			panic!("Start time should less finish time!");
 		}
 
-		let mut find_tickets: LinkedList<Rc<Ticket>> = LinkedList::new();
+		let mut find_tickets: LinkedList<Arc<Ticket>> = LinkedList::new();
 
-		let cmp = |ticket: &Rc<Ticket>| {
+		let cmp = |ticket: &Arc<Ticket>| {
 
 			let time_dep = ticket.get_dep_time();
 
@@ -376,9 +372,9 @@ impl StoreTick {
 		}		 
 	}
 
-	fn find_paths(&self, start_ticket: Rc<Ticket>, finish: Str) -> Option<LinkedList<Path>> {
+	fn find_paths(&self, start_ticket: Arc<Ticket>, finish: Str) -> Option<LinkedList<Path>> {
 
-		fn recover_path(parents: &mut HashMap<Str, Rc<Ticket>>, node: Rc<Ticket>) -> Path  {
+		fn recover_path(parents: &mut HashMap<Str, Arc<Ticket>>, node: Arc<Ticket>) -> Path  {
 
 			let mut path: LinkedList<Str> = LinkedList::new();
 			path.push_front(node.get_id());
@@ -410,12 +406,12 @@ impl StoreTick {
 
 		let mut paths: LinkedList<Path> = LinkedList::new();
 		
-		let mut stack: LinkedList<Rc<Ticket>> = LinkedList::new();
+		let mut stack: LinkedList<Arc<Ticket>> = LinkedList::new();
 		stack.push_front(start_ticket.clone());
 
-		let mut parents: HashMap<Str, Rc<Ticket>> = HashMap::new();
+		let mut parents: HashMap<Str, Arc<Ticket>> = HashMap::new();
 
-		let mut node: Rc<Ticket>;
+		let mut node: Arc<Ticket>;
 		let mut next_key: Str;
 
 		while !stack.is_empty() {
@@ -452,12 +448,12 @@ impl StoreTick {
 	}
 }
 
-fn sort<K, T, F>(map: &HashMap<K, LinkedList<Rc<T>>>, cmp: &F) -> HashMap<K, LinkedList<Rc<T>>> 
+fn sort<K, T, F>(map: &HashMap<K, LinkedList<Arc<T>>>, cmp: &F) -> HashMap<K, LinkedList<Arc<T>>> 
 where
 	K: std::cmp::Eq + std::hash::Hash + Clone, 
-	for<'r, 's> F:  Fn(&'r Rc<T>, &'s Rc<T>) -> Ordering  
+	for<'r, 's> F:  Fn(&'r Arc<T>, &'s Arc<T>) -> Ordering  
 {
-	let mut new_map: HashMap<K, LinkedList<Rc<T>>> = HashMap::with_capacity(map.capacity());
+	let mut new_map: HashMap<K, LinkedList<Arc<T>>> = HashMap::with_capacity(map.capacity());
 
 	for (key, values) in map.iter() {
 		new_map.insert(key.clone(), sort_work(values, cmp));
@@ -466,22 +462,22 @@ where
 	new_map 
 }
 
-fn sort_work<T, F>(list: &LinkedList<Rc<T>>, cmp: &F) -> LinkedList<Rc<T>> 
+fn sort_work<T, F>(list: &LinkedList<Arc<T>>, cmp: &F) -> LinkedList<Arc<T>> 
 where 
-	for<'r, 's> F:  Fn(&'r Rc<T>, &'s Rc<T>) -> Ordering  
+	for<'r, 's> F:  Fn(&'r Arc<T>, &'s Arc<T>) -> Ordering  
 {    
     let mut vec = to_vec(list);
 
     vec.sort_by(cmp);
     
-    let mut sort_list: LinkedList<Rc<T>> = vec.into_iter().collect();
+    let mut sort_list: LinkedList<Arc<T>> = vec.into_iter().collect();
 
     sort_list
 }
 
-fn to_vec<T>(list: &LinkedList<Rc<T>>) -> Vec<Rc<T>> {
+fn to_vec<T>(list: &LinkedList<Arc<T>>) -> Vec<Arc<T>> {
 
-	let mut vec: Vec<Rc<T>> = Vec::with_capacity(list.len());
+	let mut vec: Vec<Arc<T>> = Vec::with_capacity(list.len());
 
     for item in list {
     	vec.push(item.clone());
