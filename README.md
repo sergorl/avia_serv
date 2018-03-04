@@ -1,4 +1,4 @@
-# HTTP-server for storing and searching avia tickets
+# Multithreaded HTTP-server for storing and searching avia tickets
 Rust implementation of http-server is able 
 - to upload batches of ticket 
 - to store the uploaded batches in special internal sorted order
@@ -17,9 +17,10 @@ search is based on [binary search algorithm](https://en.wikipedia.org/wiki/Binar
   Internal algorithms is able 
 - to find a set of different paths between two nodes (if it exists) regardless of path length (or count of internal nodes) 
 - and to provide a robust implementation of even cycles in graph
+- Server supports multithreading
 
 ### Disadvantages
-- Now library doesn't support parallel computations
+- Now there are no parallel computings. In the future [rayon](https://crates.io/crates/rayon) will added to support parallel sort.
 
 
 
